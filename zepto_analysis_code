@@ -1,0 +1,105 @@
+/*
+Project: Zepto Product Analysis
+Database: PostgreSQL
+
+Objective:
+Analyze product pricing, discounts, availability,
+and category performance.
+
+Skills Used:
+- Table creation
+- Data cleaning
+- Aggregations
+- GROUP BY
+- HAVING
+- Filtering
+- Sorting
+- Business analysis
+*/
+
+drop table if exists ztable;
+create table ztable(
+id serial primary key,
+category varchar(50) ,
+name varchar(50) not null,
+mrp decimal(8,2),
+discountPercent decimal(5,2),
+availableQuantity integer,	
+discountedSellingPrice decimal(8,2),	
+weightInGms	integer,
+outOfStock	boolean,
+quantity integer
+);
+alter table ztable 
+alter column name type varchar(255);
+alter table ztable
+alter column category type varchar(255);
+--count the rows 
+select count(*) from ztable;
+--check out the data 
+select * from ztable 
+limit 10;
+-- is null
+select * from ztable 
+where name is null
+or Category	is null
+or mrp is null
+or discountPercent is null
+or availableQuantity is null
+or discountedSellingPrice is null
+or weightInGms is null 
+or outOfStock is null
+or quantity is null;
+--different product categories
+select distinct Category 
+from ztable
+order by Category ;
+--products in stock vs out of stock 
+select distinct Category,outOfStock,count(id)
+from ztable 
+group by outOfStock,Category
+order by  outOfStock desc
+;
+--product names present more than ones 
+select name,count(id)as "Number of SKUs"
+from ztable 
+group by name
+having count(id)>1
+order by count(id) desc;
+---data cleaning 
+select * from ztable 
+where mrp=0 or discountedSellingPrice=0;
+delete from ztable 
+where mrp=0;
+--convert paise to rupees
+update ztable 
+set mrp=mrp/100.0,
+discountedSellingPrice=discountedSellingPrice/100.0;
+select discountedSellingPrice,mrp 
+from ztable;
+--top 10 best value products based on discount percent
+select distinct name,mrp,discountPercent
+from ztable 
+order by discountPercent desc
+limit 10;
+--high mrp but out of stock
+select distinct name ,mrp
+from ztable
+where outOfStock=True and mrp>300
+order by mrp desc;
+--estimated revenue for each category
+select sum(discountedSellingPrice*availableQuantity) as total_revenue,
+category from ztable 
+group by category
+order by total_revenue;
+--mrp greater than 500 and discount less than 10%
+select distinct name,mrp,discountPercent
+from ztable
+where mrp>500 and discountPercent<10
+order by mrp desc, discountPercent desc;
+--identify top 5 categories offering highest averege discount percent
+select category,round(avg(discountPercent),2) as avg_discount
+from ztable
+group by category
+order by avg_discount desc
+limit 5;
